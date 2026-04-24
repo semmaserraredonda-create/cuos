@@ -246,42 +246,6 @@
   </div>
 </div>
 
-    <div class="step">
-      <strong>Passo 2 — Apps Script</strong>
-      No menu da planilha: <code>Extensões → Apps Script</code>. Apague o conteúdo e cole o código abaixo. Depois clique em <strong>Implantar → Nova implantação → App da Web</strong> (executar como: <em>Eu</em>, acesso: <em>Qualquer pessoa</em>). Copie a URL gerada.
-      <textarea rows="6" readonly onclick="this.select()" style="margin-top:10px">
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sh = ss.getSheetByName('Certidoes');
-    if (!sh) { sh = ss.insertSheet('Certidoes'); sh.appendRow(['ID','Numero','Nome','TipoPessoa','Documento','Endereco','Sequencial','Area','Atividade','OrgaoDestino','Secretario','Cargo','Matricula','DataEmissao','DataRegistro']); }
-    if (data.action === 'insert') {
-      sh.appendRow([data.id,data.numero,data.nome,data.tipoPessoa,data.documento,data.endereco,data.sequencial||'',data.area,data.atividade,data.orgaoDestino||'',data.secretario,data.cargo,data.matricula||'',data.dataEmissao,data.dataRegistro]);
-      return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
-    }
-    if (data.action === 'delete') {
-      var rows = sh.getDataRange().getValues();
-      for (var i = rows.length-1; i >= 1; i--) { if (String(rows[i][0]) === String(data.id)) { sh.deleteRow(i+1); break; } }
-      return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
-    }
-  } catch(err) { return ContentService.createTextOutput(JSON.stringify({ok:false,error:err.message})).setMimeType(ContentService.MimeType.JSON); }
-}
-function doGet(e) {
-  try {
-    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Certidoes');
-    if (!sh) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
-    var rows = sh.getDataRange().getValues();
-    var result = [];
-    for (var i = 1; i < rows.length; i++) {
-      result.push({id:rows[i][0],numero:rows[i][1],nome:rows[i][2],tipoPessoa:rows[i][3],documento:rows[i][4],endereco:rows[i][5],sequencial:rows[i][6],area:rows[i][7],atividade:rows[i][8],orgaoDestino:rows[i][9],secretario:rows[i][10],cargo:rows[i][11],matricula:rows[i][12],dataEmissao:rows[i][13],dataRegistro:rows[i][14]});
-    }
-    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) { return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON); }
-}
-      </textarea>
-    </div>
-
 
 <div class="toast" id="toast"></div>
 
