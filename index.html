@@ -161,10 +161,41 @@
     <div class="card">
       <div class="card-title">Localização do Imóvel</div>
       <div class="form-grid">
-        <div class="field full">
-          <label>Endereço Completo *</label>
-          <input type="text" id="endereco" placeholder="Rua, número, bairro — Serra Redonda/PB" oninput="this.value=this.value.toUpperCase()">
+        <!-- CEP -->
+        <div class="field" style="position:relative">
+          <label>CEP</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="cep" placeholder="00000-000" maxlength="9" oninput="maskCep(this)" onblur="buscarCep()" style="flex:1">
+            <button type="button" class="btn btn-outline" style="padding:8px 14px;white-space:nowrap;flex-shrink:0" onclick="buscarCep()" id="btn-cep">Buscar</button>
+          </div>
+          <span id="cep-status" style="font-size:11px;margin-top:3px;display:block;min-height:14px;"></span>
         </div>
+        <div class="field">
+          <label>Logradouro *</label>
+          <input type="text" id="logradouro" placeholder="Rua, Avenida, Travessa…" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+        </div>
+        <div class="field">
+          <label>Número *</label>
+          <input type="text" id="numero-end" placeholder="Ex.: 82 ou S/N" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+        </div>
+        <div class="field">
+          <label>Complemento</label>
+          <input type="text" id="complemento" placeholder="Apto, Sala, Loja…" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+        </div>
+        <div class="field">
+          <label>Bairro</label>
+          <input type="text" id="bairro" placeholder="Bairro" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+        </div>
+        <div class="field">
+          <label>Município *</label>
+          <input type="text" id="municipio" placeholder="Serra Redonda" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <input type="text" id="estado" placeholder="PB" maxlength="2" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+        </div>
+        <!-- Campo oculto que consolida o endereço para salvar/imprimir -->
+        <input type="hidden" id="endereco">
         <div class="field">
           <label>Sequencial / Protocolo (opcional)</label>
           <input type="text" id="sequencial" placeholder="Ex.: 1004173.7">
@@ -356,13 +387,81 @@ function switchTab(tab, el) {
 }
 
 // ── MASKS ─────────────────────────────────────────────────
+// ── CEP ──────────────────────────────────────────────────
+function maskCep(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,8);
+  if (v.length > 5) v = v.replace(/^(\d{5})(\d{1,3})$/,'$1-$2');
+  el.value = v;
+}
+
+async function buscarCep() {
+  const cep = document.getElementById('cep').value.replace(/\D/g,'');
+  const status = document.getElementById('cep-status');
+  const btn = document.getElementById('btn-cep');
+  if (cep.length !== 8) return;
+  status.style.color = 'var(--ouro)';
+  status.textContent = '⏳ Buscando…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+    const d = await r.json();
+    if (d.erro) {
+      status.style.color = 'var(--danger)';
+      status.textContent = '✖ CEP não encontrado.';
+    } else {
+      const uf = (d.uf || '').toUpperCase();
+      const loc = (d.localidade || '').toUpperCase();
+      const log = (d.logradouro || '').toUpperCase();
+      const bai = (d.bairro || '').toUpperCase();
+      document.getElementById('logradouro').value = log;
+      document.getElementById('bairro').value = bai;
+      document.getElementById('municipio').value = loc;
+      document.getElementById('estado').value = uf;
+      document.getElementById('complemento').value = '';
+      document.getElementById('numero-end').value = '';
+      montarEndereco();
+      status.style.color = 'var(--verde-mid)';
+      status.textContent = '✔ Endereço encontrado. Complete o número.';
+      document.getElementById('numero-end').focus();
+    }
+  } catch {
+    status.style.color = 'var(--danger)';
+    status.textContent = '✖ Falha na busca. Preencha manualmente.';
+  }
+  btn.disabled = false;
+}
+
+function montarEndereco() {
+  const log  = document.getElementById('logradouro').value.trim();
+  const num  = document.getElementById('numero-end').value.trim();
+  const comp = document.getElementById('complemento').value.trim();
+  const bai  = document.getElementById('bairro').value.trim();
+  const mun  = document.getElementById('municipio').value.trim();
+  const uf   = document.getElementById('estado').value.trim();
+  let partes = [];
+  if (log) partes.push(log);
+  if (num) partes.push(num);
+  if (comp) partes.push(comp);
+  if (bai) partes.push(bai);
+  if (mun) partes.push(mun);
+  if (uf)  partes.push(uf);
+  document.getElementById('endereco').value = partes.join(', ');
+}
+
 function maskDoc(el) {
   let v = el.value.replace(/\D/g, '');
   const tipo = document.getElementById('tipoPessoa').value;
   if (tipo === 'PF') {
-    v = v.slice(0,11).replace(/(\d{3})(\d)/,'.').replace(/(\d{3})\.(\d{3})(\d)/,'..').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/,'..-');
+    v = v.slice(0, 11);
+    if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})$/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})$/, '$1.$2');
   } else {
-    v = v.slice(0,14).replace(/(\d{2})(\d)/,'.').replace(/(\d{2})\.(\d{3})(\d)/,'..').replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/,'../').replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/,'../-');
+    v = v.slice(0, 14);
+    if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})$/, '$1.$2.$3/$4-$5');
+    else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4})$/, '$1.$2.$3/$4');
+    else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,3})$/, '$1.$2');
   }
   el.value = v;
 }
@@ -443,7 +542,9 @@ async function emitirCertidao() {
 
 // ── LIMPAR ────────────────────────────────────────────────
 function limparForm() {
-  ['nome','documento','endereco','sequencial','area','atividade','orgaoDestino'].forEach(id => document.getElementById(id).value = '');
+  ['nome','documento','cep','logradouro','numero-end','complemento','bairro','municipio','estado','sequencial','area','atividade','orgaoDestino'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('endereco').value='';
+  document.getElementById('cep-status').textContent='';
   document.getElementById('tipoPessoa').value = 'PF'; toggleDocField();
   document.getElementById('dataEmissao').value = new Date().toISOString().split('T')[0];
 }
