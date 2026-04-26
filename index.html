@@ -256,7 +256,7 @@
           <input type="text" id="complemento" placeholder="Apto, Sala, Loja…" oninput="this.value=this.value.toUpperCase();montarEndereco()">
         </div>
         <div class="field">
-          <label>Bairro</label>
+          <label>Bairro *</label>
           <input type="text" id="bairro" placeholder="Bairro" oninput="this.value=this.value.toUpperCase();montarEndereco()">
         </div>
         <div class="field">
@@ -264,8 +264,8 @@
           <input type="text" id="municipio" placeholder="Serra Redonda" oninput="this.value=this.value.toUpperCase();montarEndereco()">
         </div>
         <div class="field">
-          <label>Estado</label>
-          <input type="text" id="estado" placeholder="PB" maxlength="2" oninput="this.value=this.value.toUpperCase();montarEndereco()">
+          <label>Estado *</label>
+          <input type="text" id="estado" placeholder="PB" maxlength="2" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase();montarEndereco()">
         </div>
         <!-- Campo oculto que consolida o endereço para salvar/imprimir -->
         <input type="hidden" id="endereco">
@@ -735,7 +735,15 @@ function gerarProtocolo() {
 
 // ── VALIDAR ───────────────────────────────────────────────
 function validar() {
-  const obrig = ['nome','documento','endereco','area','atividade','secretario','cargo'];
+  const obrig = ['nome','documento','bairro','estado','endereco','area','atividade','secretario','cargo'];
+  // Validar estado: exatamente 2 letras
+  const estadoEl = document.getElementById('estado');
+  if (estadoEl && !/^[A-Za-z]{2}$/.test(estadoEl.value.trim())) {
+    estadoEl.focus(); estadoEl.style.borderColor='#c0392b';
+    setTimeout(() => estadoEl.style.borderColor='', 1800);
+    showToast('Estado deve ter exatamente 2 letras (ex.: PB).', 'erro');
+    return false;
+  }
   for (const id of obrig) {
     const el = document.getElementById(id);
     if (!el.value.trim()) {
@@ -1141,7 +1149,7 @@ function imprimirCertidao(cert) {
   + '</div></div>'
   + '</div>'
   + '<div style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid #aaa;padding-top:6px;text-align:center;font-size:8pt;color:#555;">'
-  + 'Rua Dom Adauto, 11 &#8211; Centro, CEP 58385-000, Serra Redonda/PB &nbsp;|&nbsp; pmserraredondapb@gmail.com &nbsp;|&nbsp; CNPJ 08.868.937/0001-95'
+  + 'Rua Dom Adauto, 11 &#8211; Centro, CEP 58385-000, Serra Redonda/PB &nbsp;|&nbsp; E-mail: pmserraredondapb@gmail.com &nbsp;|&nbsp; CNPJ 08.868.937/0001-95'
   + '</div>';
 
   const pa = document.getElementById('print-area');
